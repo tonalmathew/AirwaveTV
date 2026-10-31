@@ -11,7 +11,7 @@
 [![Min SDK](https://img.shields.io/badge/minSdk-23-blue)](app/build.gradle.kts)
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-UI-4285F4?logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
-[![Release](https://img.shields.io/badge/release-v1.0-7C5CFF)](../../releases/latest)
+[![Release](https://img.shields.io/github/v/release/tonalmathew/AirwaveTV?color=7C5CFF)](../../releases/latest)
 
 [Download](../../releases/latest) · [Features](#features) · [Installation](#installation) · [Build](#building-from-source)
 
@@ -78,7 +78,7 @@ favorites, and a full-screen player you can zap through with the D-pad.
 
 ## Installation
 
-Download **`AirwaveTV-1.0.apk`** from the [latest release](../../releases/latest), then sideload it.
+Download the APK (for example **`AirwaveTV-1.1.apk`**) from the [latest release](../../releases/latest), then sideload it.
 
 ### Option A: ADB over Wi-Fi
 
@@ -91,7 +91,7 @@ Download **`AirwaveTV-1.0.apk`** from the [latest release](../../releases/latest
 
    ```bash
    adb connect <TV_IP>:5555
-   adb install -r AirwaveTV-1.0.apk
+   adb install -r AirwaveTV-1.1.apk
    ```
 
    Accept the *Allow USB debugging?* prompt on the TV the first time.
