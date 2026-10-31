@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Full-bleed gradient so the launcher's mask (circle, squircle, ...) never shows a blank edge. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:angle="315"
+        android:endColor="#2EC5FF"
+        android:startColor="#7C5CFF"
+        android:type="linear" />
+</shape>
