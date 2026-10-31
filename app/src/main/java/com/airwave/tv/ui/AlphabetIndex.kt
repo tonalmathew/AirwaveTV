@@ -46,6 +46,8 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -86,13 +88,15 @@ fun <T> IndexedGrid(
     // entry on that row, possibly after the tail of the previous letter.
     val current by remember(all, base) {
         derivedStateOf {
-            val visible = state.layoutInfo.visibleItemsInfo.filter { it.index >= base }
+            // Rows that start on screen; a row peeking in above the top edge doesn't count.
+            val visible = state.layoutInfo.visibleItemsInfo.filter { it.index >= base && it.offset.y >= 0 }
             val topRow = visible.minOfOrNull { it.row }
             val i = visible.filter { it.row == topRow }.maxOfOrNull { it.index }?.minus(base)
             if (i != null && i in all.indices) letterOf(nameOf(all[i])) else null
         }
     }
     val scope = rememberCoroutineScope()
+    val topGap = with(LocalDensity.current) { FocusMargin.toPx() }
 
     Row(Modifier.fillMaxSize()) {
         LazyVerticalGrid(
@@ -103,7 +107,8 @@ fun <T> IndexedGrid(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier
                 .weight(1f)
-                .fillMaxHeight(),
+                .fillMaxHeight()
+                .fadingEdges(),
         ) {
             fullWidth { header() }
             fullWidth { SectionHeading("Popular") }
@@ -122,7 +127,13 @@ fun <T> IndexedGrid(
             letters = sections.map { it.first },
             current = current,
             onJump = { c ->
-                sections.firstOrNull { it.first == c }?.let { (_, i) -> scope.launch { state.scrollToItem(base + i) } }
+                sections.firstOrNull { it.first == c }?.let { (_, i) ->
+                    scope.launch {
+                        // Land the letter's row a little below the top edge rather than flush with it.
+                        state.scrollToItem(base + i)
+                        state.scrollBy(-topGap)
+                    }
+                }
             },
             onPick = { c ->
                 sections.firstOrNull { it.first == c }?.let { (_, i) -> vm.focusTarget = "$idPrefix/${keyOf(all[i])}" }
@@ -152,7 +163,7 @@ private fun AlphabetRail(
     Box(
         Modifier
             .fillMaxHeight()
-            .padding(start = 4.dp, end = 20.dp),
+            .padding(start = 4.dp, end = 20.dp, top = 32.dp, bottom = 32.dp),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -172,7 +183,7 @@ private fun AlphabetRail(
                 Box(
                     Modifier
                         .width(36.dp)
-                        .height(19.dp)
+                        .height(17.dp)
                         .focusRequester(requesters.getValue(c))
                         .onFocusChanged {
                             focused = it.isFocused
@@ -191,7 +202,7 @@ private fun AlphabetRail(
                 ) {
                     Box(
                         Modifier
-                            .size(19.dp)
+                            .size(18.dp)
                             .graphicsLayer {
                                 scaleX = scale
                                 scaleY = scale

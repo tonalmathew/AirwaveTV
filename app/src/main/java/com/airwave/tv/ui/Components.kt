@@ -2,7 +2,15 @@ package com.airwave.tv.ui
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -48,8 +56,11 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -73,6 +84,7 @@ import coil.compose.AsyncImage
 import com.airwave.tv.R
 import com.airwave.tv.data.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 fun KeyEvent.isSelectKey() = key == Key.DirectionCenter || key == Key.Enter || key == Key.NumPadEnter
 
@@ -100,7 +112,15 @@ fun Modifier.restorableFocus(vm: AppViewModel, id: String, isFirst: Boolean = fa
         .onFocusChanged { if (it.isFocused) vm.lastFocused = id }
 }
 
-/** Base focusable surface: lifts slightly and gets a crisp white outline when focused. Hold OK for [onLongClick]. */
+/** Space kept between a focused item and the edges of the list it scrolls in. */
+val FocusMargin = 28.dp
+
+/**
+ * Base focusable surface: lifts slightly and gets a crisp white outline when focused. Hold OK for [onLongClick].
+ * When focused it scrolls itself into view with [FocusMargin] to spare, so it never sits flush
+ * against (or gets clipped by) the edge of a list.
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TvCard(
     onClick: () -> Unit,
@@ -116,9 +136,22 @@ fun TvCard(
     var longFired by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(if (focused) focusedScale else 1f, label = "cardScale")
     val interaction = remember { MutableInteractionSource() }
+    val bringIntoView = remember { BringIntoViewRequester() }
+    val scope = rememberCoroutineScope()
+    val margin = with(LocalDensity.current) { FocusMargin.toPx() }
+    var size by remember { mutableStateOf(IntSize.Zero) }
 
     Box(
         modifier
+            .onSizeChanged { size = it }
+            .bringIntoViewRequester(bringIntoView)
+            .onFocusChanged {
+                if (it.isFocused) {
+                    scope.launch {
+                        bringIntoView.bringIntoView(Rect(-margin, -margin, size.width + margin, size.height + margin))
+                    }
+                }
+            }
             .zIndex(if (focused) 1f else 0f)
             .graphicsLayer {
                 scaleX = scale
@@ -269,7 +302,7 @@ fun ChannelGrid(
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minCellWidth),
         state = state,
-        modifier = modifier,
+        modifier = modifier.fadingEdges(),
         contentPadding = PaddingValues(start = ScreenPadding, end = 48.dp, top = 8.dp, bottom = 56.dp),
         horizontalArrangement = Arrangement.spacedBy(22.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -286,6 +319,29 @@ fun ChannelGrid(
         }
     }
 }
+
+/** Fades a scrolling list out over [top] and [bottom] instead of cutting items off at its edges. */
+fun Modifier.fadingEdges(top: Dp = 28.dp, bottom: Dp = 28.dp): Modifier = this
+    .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+    .drawWithContent {
+        drawContent()
+        val h = size.height
+        if (h <= 0f) return@drawWithContent
+        val t = (top.toPx() / h).coerceIn(0f, 0.5f)
+        val b = (bottom.toPx() / h).coerceIn(0f, 0.5f)
+        drawRect(
+            // The outer part of each edge is fully clear, so stray bits of rows don't linger there.
+            Brush.verticalGradient(
+                0f to Color.Transparent,
+                t * 0.55f to Color.Transparent,
+                t to Color.Black,
+                1f - b to Color.Black,
+                1f - b * 0.55f to Color.Transparent,
+                1f to Color.Transparent,
+            ),
+            blendMode = BlendMode.DstIn,
+        )
+    }
 
 /** Widens a full-width backdrop to reach under the collapsed side menu, so it has no edge there. */
 fun Modifier.underSideMenu(): Modifier = layout { measurable, constraints ->

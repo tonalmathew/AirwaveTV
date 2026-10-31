@@ -55,11 +55,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.sp
 import com.airwave.tv.data.Channel
 import com.airwave.tv.data.Library
 import kotlinx.coroutines.delay
 import java.util.Date
+
+/** Gap above a pinned row: just the blank space between rows, so none of the row above shows. */
+private val RowEdge = 12.dp
 
 private class HomeRow(val id: String, val title: String, val channels: List<Channel>)
 
@@ -109,7 +116,7 @@ fun HomeScreen(vm: AppViewModel, lib: Library) {
         Box(
             Modifier
                 .fillMaxWidth()
-                .height(236.dp),
+                .height(224.dp),
         ) {
             Crossfade(targetState = hero, label = "hero") { channel ->
                 Hero(channel, lib, channel != null && channel.key in vm.favorites)
@@ -118,18 +125,37 @@ fun HomeScreen(vm: AppViewModel, lib: Library) {
         }
         LazyColumn(
             state = vm.homeListState,
-            contentPadding = PaddingValues(bottom = 64.dp),
+            contentPadding = PaddingValues(top = RowEdge, bottom = 64.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .fadingEdges(top = RowEdge),
         ) {
             itemsIndexed(rows, key = { _, row -> row.id }) { rowIndex, row ->
                 // Scroll the whole row (title included) into view when focus enters it.
+                // Scroll the whole row (title included) into view when focus enters it, clear of the faded top edge.
                 val rowView = remember { BringIntoViewRequester() }
                 val scope = rememberCoroutineScope()
+                var rowSize by remember { mutableStateOf(IntSize.Zero) }
+                val margin = with(LocalDensity.current) { RowEdge.toPx() }
                 Column(
                     Modifier
+                        .onSizeChanged { rowSize = it }
                         .bringIntoViewRequester(rowView)
-                        .onFocusChanged { if (it.hasFocus) scope.launch { rowView.bringIntoView() } },
+                        .onFocusChanged {
+                            if (it.hasFocus) {
+                                scope.launch {
+                                    // Pin the focused row just below the header so the previous row
+                                    // scrolls away rather than peeking out half-cut. Wait for the list's
+                                    // own focus scrolling to finish first, or it cancels this animation.
+                                    delay(60)
+                                    runCatching { vm.homeListState.animateScrollToItem(rowIndex, -margin.toInt()) }
+                                        .onFailure {
+                                            rowView.bringIntoView(Rect(0f, -margin, rowSize.width.toFloat(), rowSize.height.toFloat()))
+                                        }
+                                }
+                            }
+                        },
                 ) {
                     SectionTitle(row.title)
                     LazyRow(
