@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/images/logo.png" alt="Airwave TV logo" width="120" />
+<img src="docs/images/logo.png" alt="Airwave TV logo" width="160" />
 
 # Airwave TV
 
@@ -15,8 +15,6 @@
 
 [Download](../../releases/latest) · [Features](#features) · [Installation](#installation) · [Build](#building-from-source)
 
-<img src="docs/images/banner.png" alt="Airwave TV banner" width="480" />
-
 </div>
 
 ---
@@ -24,6 +22,7 @@
 ## Table of contents
 
 - [About](#about)
+- [App icon and banner](#app-icon-and-banner)
 - [Screenshots](#screenshots)
 - [Features](#features)
 - [Installation](#installation)
@@ -43,6 +42,12 @@ Airwave TV is an IPTV player for the big screen. It loads the public, community-
 [iptv-org/iptv](https://github.com/iptv-org/iptv) playlist and turns it into a TV-style app: rows of
 channels on Home, browsing by country, category and language, search with an on-screen keyboard,
 favorites, and a full-screen player you can zap through with the D-pad.
+
+## App icon and banner
+
+| App icon | Google TV home-screen banner |
+|:---:|:---:|
+| <img src="docs/images/logo.png" alt="Airwave TV app icon" width="160" /> | <img src="docs/images/banner.png" alt="Airwave TV banner" width="320" /> |
 
 ## Screenshots
 
