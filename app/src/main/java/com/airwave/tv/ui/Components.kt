@@ -60,6 +60,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -286,6 +287,14 @@ fun ChannelGrid(
     }
 }
 
+/** Widens a full-width backdrop to reach under the collapsed side menu, so it has no edge there. */
+fun Modifier.underSideMenu(): Modifier = layout { measurable, constraints ->
+    val extra = NavCollapsedWidth.roundToPx()
+    val width = constraints.maxWidth + extra
+    val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+    layout(constraints.maxWidth, placeable.height) { placeable.place(-extra, 0) }
+}
+
 fun LazyGridScope.fullWidth(content: @Composable () -> Unit) {
     item(span = { GridItemSpan(maxLineSpan) }) { content() }
 }
@@ -359,18 +368,16 @@ fun TvChip(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    count: Int? = null,
 ) {
     TvCard(onClick = onClick, modifier = modifier, shape = Shapes.Control, focusedScale = 1.06f, showBorder = false) { focused ->
-        Text(
-            label,
-            fontSize = 15.sp,
-            fontWeight = if (selected || focused) FontWeight.SemiBold else FontWeight.Medium,
-            maxLines = 1,
-            color = when {
-                focused -> Palette.OnFocus
-                selected -> Color.White
-                else -> Palette.Text
-            },
+        val fg = when {
+            focused -> Palette.OnFocus
+            selected -> Color.White
+            else -> Palette.Text
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .then(
                     when {
@@ -380,7 +387,25 @@ fun TvChip(
                     },
                 )
                 .padding(horizontal = 18.dp, vertical = 9.dp),
-        )
+        ) {
+            Text(
+                label,
+                fontSize = 15.sp,
+                fontWeight = if (selected || focused) FontWeight.SemiBold else FontWeight.Medium,
+                maxLines = 1,
+                color = fg,
+            )
+            if (count != null) {
+                Text(
+                    "%,d".format(count),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    color = fg.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
+        }
     }
 }
 

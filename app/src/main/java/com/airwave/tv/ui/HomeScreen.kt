@@ -194,7 +194,7 @@ private fun HeroBackdrop(channel: Channel) {
         contentDescription = null,
         contentScale = ContentScale.Crop,
         modifier = Modifier
-            .fillMaxWidth()
+            .underSideMenu()
             .height(520.dp)
             .graphicsLayer {
                 alpha = 0.35f

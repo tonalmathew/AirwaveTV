@@ -57,7 +57,8 @@ sealed interface LoadState {
     data object Ready : LoadState
 }
 
-class ChannelFilter(val label: String, val test: (Channel) -> Boolean)
+/** A filter chip; [count] is how many of the screen's channels it matches. */
+class ChannelFilter(val label: String, val count: Int, val test: (Channel) -> Boolean)
 
 /** One row of filter chips ("All" first). Rows on a screen combine. */
 class FilterRow(val label: String, val filters: List<ChannelFilter>) {
@@ -234,8 +235,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (counts.size < 2) return null
         val top = counts.entries.sortedByDescending { it.value }.map { it.key }.take(12)
             .let { if (pinned != null && pinned in counts) listOf(pinned) + (it - pinned) else it }
-        val filters = listOf(ChannelFilter("All") { true }) +
-            top.map { value -> ChannelFilter(chipLabel(value)) { value in values(it) } }
+        val filters = listOf(ChannelFilter("All", channels.size) { true }) +
+            top.map { value -> ChannelFilter(chipLabel(value), counts.getValue(value)) { value in values(it) } }
         return FilterRow(label, filters)
     }
 

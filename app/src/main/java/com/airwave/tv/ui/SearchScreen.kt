@@ -25,7 +25,11 @@ import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,9 +42,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.airwave.tv.data.Library
 
-private const val KEYS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
-private const val KEYS_PER_ROW = 6
-private val KeySize = 50.dp
+private const val LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+private const val DIGITS = "1234567890"
+private const val KEYS_PER_ROW = 7
+private val KeySize = 48.dp
 private val KeyGap = 6.dp
 
 private val suggestions = listOf("News", "Sport", "Music", "Movies", "Kids", "BBC", "CNN", "Al Jazeera", "France 24", "DW")
@@ -54,7 +59,7 @@ fun SearchScreen(vm: AppViewModel, lib: Library) {
     Row(Modifier.fillMaxSize()) {
         Column(
             Modifier
-                .width(ScreenPadding + KeySize * KEYS_PER_ROW + KeyGap * (KEYS_PER_ROW - 1) + 24.dp)
+                .width(ScreenPadding + keyWidth(KEYS_PER_ROW) + 24.dp)
                 .fillMaxHeight()
                 .padding(start = ScreenPadding),
         ) {
@@ -96,11 +101,15 @@ fun SearchScreen(vm: AppViewModel, lib: Library) {
                     channels = results,
                     state = vm.searchGrid,
                     idPrefix = "search",
-                    minCellWidth = 180.dp,
+                    minCellWidth = 160.dp,
                 ) {
                     fullWidth {
                         Text(
-                            "${results.size}${if (results.size >= 300) "+" else ""} results",
+                            when {
+                                results.size == 1 -> "1 result"
+                                results.size >= 300 -> "300+ results"
+                                else -> "${results.size} results"
+                            },
                             fontSize = 15.sp,
                             color = Palette.TextDim,
                             modifier = Modifier.padding(top = 140.dp, bottom = 4.dp),
@@ -134,6 +143,7 @@ private fun QueryBox(query: String) {
     }
 }
 
+/** Letters by default; the "123" key swaps the grid for digits (search ignores symbols). */
 @Composable
 private fun Keyboard(
     vm: AppViewModel,
@@ -142,13 +152,14 @@ private fun Keyboard(
     onBackspace: () -> Unit,
     onClear: () -> Unit,
 ) {
+    var numbers by rememberSaveable { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(KeyGap)) {
-        KEYS.chunked(KEYS_PER_ROW).forEachIndexed { row, chars ->
+        (if (numbers) DIGITS else LETTERS).chunked(KEYS_PER_ROW).forEachIndexed { row, chars ->
             Row(horizontalArrangement = Arrangement.spacedBy(KeyGap)) {
                 chars.forEachIndexed { col, c ->
                     Key(
                         label = c.toString(),
-                        width = KeySize,
+                        width = keyWidth(1),
                         onClick = { onKey(c) },
                         modifier = Modifier.restorableFocus(vm, "key/$c", isFirst = row == 0 && col == 0),
                     )
@@ -156,15 +167,34 @@ private fun Keyboard(
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(KeyGap)) {
-            Key("Space", KeySize * 3 + KeyGap * 2, onSpace)
-            Key("Delete", KeySize * 2 + KeyGap, onBackspace, icon = Icons.Outlined.Backspace)
-            Key("Clear", KeySize, onClear, icon = Icons.Outlined.Close)
+            Key(
+                label = if (numbers) "ABC" else "123",
+                width = keyWidth(2),
+                onClick = {
+                    numbers = !numbers
+                    vm.focusTarget = "key/mode"
+                },
+                modifier = Modifier.restorableFocus(vm, "key/mode"),
+                accent = true,
+            )
+            Key("Space", keyWidth(3), onSpace, modifier = Modifier.restorableFocus(vm, "key/space"))
+            Key("Delete", keyWidth(1), onBackspace, modifier = Modifier.restorableFocus(vm, "key/delete"), icon = Icons.Outlined.Backspace)
+            Key("Clear", keyWidth(1), onClear, modifier = Modifier.restorableFocus(vm, "key/clear"), icon = Icons.Outlined.Close)
         }
     }
 }
 
+private fun keyWidth(units: Int): Dp = KeySize * units + KeyGap * (units - 1)
+
 @Composable
-private fun Key(label: String, width: Dp, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null) {
+private fun Key(
+    label: String,
+    width: Dp,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: ImageVector? = null,
+    accent: Boolean = false,
+) {
     TvCard(
         onClick = onClick,
         modifier = modifier
@@ -177,7 +207,13 @@ private fun Key(label: String, width: Dp, onClick: () -> Unit, modifier: Modifie
         Box(
             Modifier
                 .fillMaxSize()
-                .then(if (focused) Modifier.background(Color.White) else Modifier.glass(RoundedCornerShape(12.dp))),
+                .then(
+                    when {
+                        focused -> Modifier.background(Color.White)
+                        accent -> Modifier.glass(RoundedCornerShape(12.dp), Palette.GlassHi)
+                        else -> Modifier.glass(RoundedCornerShape(12.dp))
+                    },
+                ),
             contentAlignment = Alignment.Center,
         ) {
             if (icon != null) {
@@ -185,8 +221,8 @@ private fun Key(label: String, width: Dp, onClick: () -> Unit, modifier: Modifie
             } else {
                 Text(
                     label,
-                    fontSize = if (label.length > 1) 15.sp else 19.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontSize = if (label.length > 1) 15.sp else 20.sp,
+                    fontWeight = if (accent) FontWeight.SemiBold else FontWeight.Medium,
                     color = if (focused) Palette.OnFocus else Palette.Text,
                 )
             }
