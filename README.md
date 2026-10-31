@@ -54,8 +54,8 @@ favorites, and a full-screen player you can zap through with the D-pad.
 | Home | Languages |
 |:---:|:---:|
 | <img src="docs/screenshots/home.png" alt="Home screen" width="420" /> | <img src="docs/screenshots/languages.png" alt="Languages" width="420" /> |
-| **Filters (Arabic + Lebanon)** | **Categories** |
-| <img src="docs/screenshots/filters.png" alt="Channel list with filters" width="420" /> | <img src="docs/screenshots/categories.png" alt="Categories" width="420" /> |
+| **Country page with filters** | **Categories** |
+| <img src="docs/screenshots/filters.png" alt="Country page with filter chips" width="420" /> | <img src="docs/screenshots/categories.png" alt="Categories" width="420" /> |
 | **Search** | **Player** |
 | <img src="docs/screenshots/search.png" alt="Search" width="420" /> | <img src="docs/screenshots/player.png" alt="Player overlay" width="420" /> |
 | **Settings** | |
@@ -63,12 +63,15 @@ favorites, and a full-screen player you can zap through with the D-pad.
 
 ## Features
 
-- **Home**: a header showing the highlighted channel, plus rows for *Continue watching*, *Your favorites*,
-  your country, your language, News, Sports, Movies, Music, Kids and more.
+- **Home**: a header showing the highlighted channel over a soft wash of its colours, plus rows for
+  *Continue watching*, *Your favorites*, your country, your language, News, Sports, Movies, Music, Kids and more.
 - **Browse three ways**: by **country** (with flags), **category** (30 genres) or **language** (200+).
-- **Combinable filters**: every channel list has chip rows for Category, Country and Language,
-  e.g. *Religious → India → Hindi*.
-- **Search**: an on-screen keyboard made for the remote, with results as you type.
+  Each list starts with the most popular entries, then goes A–Z with an **A–Z rail** on the right to jump through it.
+- **Combinable filters**: every channel list has chip rows for Category, Country and Language, with channel
+  counts, e.g. *Religious → India → Hindi*.
+- **Search**: a letters-only on-screen keyboard made for the remote (press **123** for digits), with results as you type.
+- **Look and feel**: a black theme with frosted-glass panels, a short logo intro on launch, and a round-friendly
+  adaptive icon for the Google TV home screen.
 - **Favorites**: hold **OK** on any channel, or while watching, to add or remove it.
 - **Home country and home language**: your channels come first on Home and in every list.
 - **Player**: HLS, DASH and progressive streams via Media3/ExoPlayer, channel zapping, a slide-in
@@ -78,7 +81,7 @@ favorites, and a full-screen player you can zap through with the D-pad.
 
 ## Installation
 
-Download the APK (for example **`AirwaveTV-1.1.apk`**) from the [latest release](../../releases/latest), then sideload it.
+Download the APK (for example **`AirwaveTV-1.2.apk`**) from the [latest release](../../releases/latest), then sideload it.
 
 ### Option A: ADB over Wi-Fi
 
@@ -91,7 +94,7 @@ Download the APK (for example **`AirwaveTV-1.1.apk`**) from the [latest release]
 
    ```bash
    adb connect <TV_IP>:5555
-   adb install -r AirwaveTV-1.1.apk
+   adb install -r AirwaveTV-1.2.apk
    ```
 
    Accept the *Allow USB debugging?* prompt on the TV the first time.
@@ -117,6 +120,7 @@ Airwave TV then appears in the **Apps** row on Google TV.
 | Where | Button | Action |
 |---|---|---|
 | Anywhere | ◀ (from content) / Back | Open the side menu |
+| Countries, categories, languages | ▶ from the right edge | Open the A–Z rail; ▲ ▼ jump, OK or ◀ go to that letter |
 | Channel tile | OK | Watch |
 | Channel tile | Hold OK | Add or remove favorite |
 | Player | ▲ / ▼ (or CH+ / CH−) | Previous / next channel |
@@ -162,14 +166,16 @@ app/src/main/java/com/airwave/tv/
 │   └── Library.kt         # Indexes by country / category / language, search, ranking
 └── ui/
     ├── AppViewModel.kt    # App state, navigation, filters, favorites
-    ├── Shell.kt           # Root layout, side menu, splash / error screens
+    ├── Shell.kt           # Root layout, side menu, error screen
+    ├── SplashScreen.kt    # Logo intro
     ├── HomeScreen.kt      # Header + channel rows
     ├── BrowseScreens.kt   # Countries, categories, languages, channel lists, favorites
+    ├── AlphabetIndex.kt   # Popular + A–Z grid with the A–Z rail
     ├── SearchScreen.kt    # On-screen keyboard + results
     ├── SettingsScreen.kt  # Home country / language, toggles, refresh
     ├── PlayerScreen.kt    # Media3 player, overlay, channel list, stream fallback
     ├── Components.kt      # Focusable cards, chips, buttons
-    └── Theme.kt, Styles.kt, Icons.kt
+    └── Theme.kt, Styles.kt  # Colours, glass surfaces, category icons and gradients
 ```
 
 ## How it works
