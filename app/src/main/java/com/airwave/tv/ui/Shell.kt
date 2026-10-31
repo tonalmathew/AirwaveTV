@@ -2,7 +2,9 @@ package com.airwave.tv.ui
 
 import android.app.Activity
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusGroup
@@ -11,7 +13,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,7 +22,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,11 +29,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
@@ -58,10 +60,18 @@ fun AppRoot(vm: AppViewModel) {
             .background(Palette.Bg)
             .onFocusChanged { vm.uiHasFocus = it.hasFocus },
     ) {
-        when (val state = vm.loadState) {
-            LoadState.Loading -> Splash()
-            is LoadState.Failed -> LoadError(state.message, onRetry = vm::load)
-            LoadState.Ready -> vm.library?.let { MainShell(vm, it) }
+        // The intro plays to the end (and holds while loading) before the app takes over.
+        var introDone by rememberSaveable { mutableStateOf(false) }
+        val screen = if (introDone) vm.loadState else LoadState.Loading
+        Crossfade(screen, animationSpec = tween(350), label = "root") { state ->
+            when (state) {
+                LoadState.Loading -> Splash(
+                    ready = vm.loadState != LoadState.Loading,
+                    onFinished = { introDone = true },
+                )
+                is LoadState.Failed -> LoadError(state.message, onRetry = vm::load)
+                LoadState.Ready -> vm.library?.let { MainShell(vm, it) }
+            }
         }
         vm.player?.let { session ->
             key(session) { PlayerScreen(vm, session) }
@@ -226,32 +236,6 @@ private fun SideNav(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun Splash() {
-    Column(
-        Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        AppMark(84.dp)
-        Text("Airwave TV", fontSize = 42.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 24.dp))
-        Text(
-            "Loading free channels from around the world…",
-            fontSize = 18.sp,
-            color = Palette.TextDim,
-            modifier = Modifier.padding(top = 8.dp),
-        )
-        Spacer(Modifier.height(32.dp))
-        LinearProgressIndicator(
-            color = Palette.Accent,
-            trackColor = Palette.SurfaceHi,
-            modifier = Modifier
-                .width(300.dp)
-                .clip(RoundedCornerShape(50)),
-        )
     }
 }
 
