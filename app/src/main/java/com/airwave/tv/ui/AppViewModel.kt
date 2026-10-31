@@ -5,12 +5,20 @@ import android.widget.Toast
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -32,14 +40,15 @@ import java.util.Locale
 /** Focus target meaning "the first item of whatever screen is showing". */
 const val FIRST = "__first__"
 
-enum class Tab(val label: String, val icon: ImageVector) {
-    Home("Home", Icons.Filled.Home),
-    Search("Search", Icons.Filled.Search),
-    Countries("Countries", Icons.Filled.Place),
-    Categories("Categories", Icons.AutoMirrored.Filled.List),
-    Languages("Languages", GlobeIcon),
-    Favorites("Favorites", Icons.Filled.Favorite),
-    Settings("Settings", Icons.Filled.Settings),
+/** Side-menu tabs: outlined icon normally, filled when it's the current tab. */
+enum class Tab(val label: String, val icon: ImageVector, val selectedIcon: ImageVector) {
+    Home("Home", Icons.Outlined.Home, Icons.Filled.Home),
+    Search("Search", Icons.Outlined.Search, Icons.Filled.Search),
+    Countries("Countries", Icons.Outlined.Place, Icons.Filled.Place),
+    Categories("Categories", Icons.Outlined.GridView, Icons.Filled.GridView),
+    Languages("Languages", Icons.Outlined.Language, Icons.Filled.Language),
+    Favorites("Favorites", Icons.Outlined.FavoriteBorder, Icons.Filled.Favorite),
+    Settings("Settings", Icons.Outlined.Settings, Icons.Filled.Settings),
 }
 
 sealed interface LoadState {
@@ -61,9 +70,11 @@ sealed interface Screen {
     val returnFocus: String?
 }
 
+/** [kind] is the small label above the title ("Country"…); [flag] is shown for countries. */
 class ChannelListScreen(
     val title: String,
-    val badge: String,
+    val kind: String,
+    val flag: String?,
     val channels: List<Channel>,
     val filterRows: List<FilterRow>,
     override val returnFocus: String?,
@@ -192,21 +203,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val country = lib.country(code)
         val channels = Library.rank(lib.byCountry[code].orEmpty())
         val rows = listOfNotNull(categoryRow(channels), languageRow(channels))
-        push(ChannelListScreen(country.name, country.flag, channels, rows, lastFocused))
+        push(ChannelListScreen(country.name, "Country", country.flag.ifEmpty { null }, channels, rows, lastFocused))
     }
 
     fun openCategory(name: String) {
         val lib = library ?: return
         val channels = localFirst(Library.rank(lib.byCategory[name].orEmpty()))
         val rows = listOfNotNull(countryRow(lib, channels), languageRow(channels))
-        push(ChannelListScreen(name, categoryStyle(name).emoji, channels, rows, lastFocused))
+        push(ChannelListScreen(name, "Category", null, channels, rows, lastFocused))
     }
 
     fun openLanguage(name: String) {
         val lib = library ?: return
         val channels = localFirst(Library.rank(lib.byLanguage[name].orEmpty()))
         val rows = listOfNotNull(categoryRow(channels), countryRow(lib, channels))
-        push(ChannelListScreen(name, "🗣️", channels, rows, lastFocused))
+        push(ChannelListScreen(name, "Language", null, channels, rows, lastFocused))
     }
 
     private fun localFirst(ranked: List<Channel>) = Library.localFirst(ranked, homeCountry, homeLanguage)
@@ -230,7 +241,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun categoryRow(channels: List<Channel>) = filterRow(
         "Category", channels, { ch -> ch.categories.filter { it != OTHER_CATEGORY } },
-    ) { "${categoryStyle(it).emoji}  $it" }
+    )
 
     private fun languageRow(channels: List<Channel>) =
         filterRow("Language", channels, { it.languages }, pinned = homeLanguage)

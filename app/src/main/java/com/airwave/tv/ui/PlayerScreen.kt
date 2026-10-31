@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -34,8 +35,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -431,16 +432,17 @@ private fun ErrorCard(channel: Channel, message: String, modifier: Modifier) {
     Column(
         modifier
             .width(600.dp)
-            .clip(RoundedCornerShape(22.dp))
-            .background(Palette.Surface.copy(alpha = 0.96f))
+            .clip(Shapes.Tile)
+            .background(Palette.Surface.copy(alpha = 0.92f))
+            .border(1.dp, Palette.GlassEdge, Shapes.Tile)
             .padding(36.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(Icons.Filled.Warning, contentDescription = null, tint = Palette.Danger, modifier = Modifier.size(44.dp))
+        Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = Palette.Danger, modifier = Modifier.size(40.dp))
         Text(
             "Can't play ${channel.name}",
             fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 14.dp),
         )
@@ -489,7 +491,8 @@ private fun InfoOverlay(
                 modifier = Modifier
                     .width(184.dp)
                     .aspectRatio(16f / 9f)
-                    .clip(RoundedCornerShape(14.dp)),
+                    .clip(Shapes.Card)
+                    .border(1.dp, Palette.GlassEdge, Shapes.Card),
                 padding = 14.dp,
                 initialsSize = 32.sp,
             )
@@ -499,9 +502,9 @@ private fun InfoOverlay(
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(Shapes.Badge)
                             .background(Palette.Live)
-                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                            .padding(horizontal = 7.dp, vertical = 2.dp),
                     ) {
                         Box(
                             Modifier
@@ -509,7 +512,7 @@ private fun InfoOverlay(
                                 .clip(CircleShape)
                                 .background(Color.White),
                         )
-                        Text("LIVE", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(start = 6.dp))
+                        Text("LIVE", fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, color = Color.White, modifier = Modifier.padding(start = 6.dp))
                     }
                     Text(
                         "$number / $total  ·  $listTitle",
@@ -523,18 +526,28 @@ private fun InfoOverlay(
                 Text(
                     channel.name,
                     fontSize = 36.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = (-0.5).sp,
                     color = Color.White,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 6.dp),
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 10.dp)) {
-                    country?.let { MetaChip("${it.flag}  ${it.name}") }
-                    channel.languages.firstOrNull()?.let { MetaChip("🗣️  $it") }
-                    channel.categories.take(1).forEach { MetaChip(it) }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.padding(top = 10.dp),
+                ) {
+                    val details = listOfNotNull(
+                        country?.let { "${it.flag}  ${it.name}" },
+                        channel.languages.firstOrNull(),
+                        channel.categories.firstOrNull(),
+                    ).joinToString("   ·   ")
+                    if (details.isNotEmpty()) {
+                        Text(details, fontSize = 16.sp, color = Color.White.copy(alpha = 0.75f), maxLines = 1, modifier = Modifier.padding(end = 6.dp))
+                    }
                     if (videoHeight > 0) MetaChip("${videoHeight}p")
-                    if (favorite) MetaChip("★ Favorite", Palette.Gold)
+                    if (favorite) MetaChip("Favorite")
                 }
             }
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -551,15 +564,14 @@ private fun KeyHint(key: String, action: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
             key,
-            fontSize = 13.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.Black,
+            color = Color.White,
             modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(Color.White.copy(alpha = 0.9f))
-                .padding(horizontal = 8.dp, vertical = 3.dp),
+                .border(1.dp, Color.White.copy(alpha = 0.4f), Shapes.Badge)
+                .padding(horizontal = 6.dp, vertical = 2.dp),
         )
-        Text(action, fontSize = 15.sp, color = Color.White.copy(alpha = 0.85f), modifier = Modifier.padding(start = 10.dp))
+        Text(action, fontSize = 14.sp, color = Color.White.copy(alpha = 0.8f), modifier = Modifier.padding(start = 8.dp))
     }
 }
 
@@ -586,7 +598,7 @@ private fun ChannelListPanel(
             .fillMaxHeight()
             .width(480.dp)
             .background(
-                Brush.horizontalGradient(0f to Color.Black.copy(alpha = 0.95f), 0.8f to Color.Black.copy(alpha = 0.88f), 1f to Color.Transparent),
+                Brush.horizontalGradient(0f to Palette.Bg.copy(alpha = 0.97f), 0.82f to Palette.Bg.copy(alpha = 0.92f), 1f to Color.Transparent),
             )
             .onPreviewKeyEvent { ev ->
                 if (ev.key == Key.DirectionRight && ev.type == KeyEventType.KeyDown) {
@@ -596,8 +608,9 @@ private fun ChannelListPanel(
             },
     ) {
         Column(Modifier.padding(start = 36.dp, top = 40.dp, end = 56.dp)) {
-            Text(title, fontSize = 24.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(channelCount(channels.size), fontSize = 15.sp, color = Palette.TextDim, modifier = Modifier.padding(top = 4.dp, bottom = 18.dp))
+            Eyebrow("Now watching from")
+            Text(title, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
+            Text(channelCount(channels.size), fontSize = 14.sp, color = Palette.TextDim, modifier = Modifier.padding(top = 2.dp, bottom = 18.dp))
             LazyColumn(
                 state = listState,
                 verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -628,22 +641,22 @@ private fun PanelRow(
     modifier: Modifier,
 ) {
     var focused by remember { mutableStateOf(false) }
-    val fg = if (focused) Color.Black else Palette.Text
+    val fg = if (focused) Palette.OnFocus else Palette.Text
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
             .height(60.dp)
             .onFocusChanged { focused = it.isFocused }
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (focused) Color.White else if (playing) Color.White.copy(alpha = 0.12f) else Color.Transparent)
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (focused) Color.White else if (playing) Palette.GlassHi else Color.Transparent)
             .clickable(remember { MutableInteractionSource() }, indication = null, onClick = onClick)
             .padding(horizontal = 12.dp),
     ) {
         Text(
             "$number",
             fontSize = 14.sp,
-            color = if (focused) Color.Black.copy(alpha = 0.6f) else Palette.TextDim,
+            color = if (focused) Palette.OnFocusDim else Palette.TextFaint,
             modifier = Modifier.width(44.dp),
         )
         ChannelLogo(
@@ -651,7 +664,7 @@ private fun PanelRow(
             modifier = Modifier
                 .width(68.dp)
                 .height(40.dp)
-                .clip(RoundedCornerShape(8.dp)),
+                .clip(Shapes.Badge),
             padding = 5.dp,
             initialsSize = 14.sp,
         )
@@ -666,7 +679,7 @@ private fun PanelRow(
                 .weight(1f)
                 .padding(start = 14.dp),
         )
-        if (favorite) Icon(Icons.Filled.Star, contentDescription = null, tint = Palette.Gold, modifier = Modifier.size(18.dp))
+        if (favorite) Icon(Icons.Filled.Favorite, contentDescription = null, tint = if (focused) Palette.OnFocus else Palette.Text, modifier = Modifier.size(16.dp))
         if (playing) {
             Box(
                 Modifier

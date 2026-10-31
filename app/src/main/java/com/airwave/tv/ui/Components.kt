@@ -1,5 +1,6 @@
 package com.airwave.tv.ui
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,15 +22,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -47,6 +52,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
@@ -93,13 +99,13 @@ fun Modifier.restorableFocus(vm: AppViewModel, id: String, isFirst: Boolean = fa
         .onFocusChanged { if (it.isFocused) vm.lastFocused = id }
 }
 
-/** Base focusable surface: grows and gets a white outline when focused. Hold OK for [onLongClick]. */
+/** Base focusable surface: lifts slightly and gets a crisp white outline when focused. Hold OK for [onLongClick]. */
 @Composable
 fun TvCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    shape: Shape = RoundedCornerShape(14.dp),
-    focusedScale: Float = 1.08f,
+    shape: Shape = Shapes.Card,
+    focusedScale: Float = 1.06f,
     showBorder: Boolean = true,
     onLongClick: (() -> Unit)? = null,
     onFocusChange: (Boolean) -> Unit = {},
@@ -117,7 +123,16 @@ fun TvCard(
                 scaleX = scale
                 scaleY = scale
             }
-            .then(if (focused && showBorder) Modifier.border(3.dp, Color.White, shape) else Modifier)
+            // Focused cards glow softly in the brand colour.
+            .then(
+                if (focused && showBorder) {
+                    Modifier
+                        .shadow(28.dp, shape, ambientColor = Palette.Accent, spotColor = Palette.Accent)
+                        .border(2.5.dp, Color.White, shape)
+                } else {
+                    Modifier
+                },
+            )
             .clip(shape)
             .onFocusChanged {
                 if (focused != it.isFocused) {
@@ -155,20 +170,19 @@ fun TvCard(
 fun ChannelLogo(
     channel: Channel,
     modifier: Modifier = Modifier,
-    padding: Dp = 16.dp,
-    initialsSize: TextUnit = 28.sp,
+    padding: Dp = 18.dp,
+    initialsSize: TextUnit = 26.sp,
 ) {
     var failed by remember(channel.logo) { mutableStateOf(channel.logo == null) }
     Box(modifier.background(Palette.LogoBrush), contentAlignment = Alignment.Center) {
         if (failed) {
-            Box(
-                Modifier
-                    .matchParentSize()
-                    .background(Brush.linearGradient(remember(channel.name) { gradientFor(channel.name) })),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(initialsOf(channel.name), fontSize = initialsSize, fontWeight = FontWeight.Bold, color = Color.White)
-            }
+            Text(
+                initialsOf(channel.name),
+                fontSize = initialsSize,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.sp,
+                color = Palette.TextFaint,
+            )
         } else {
             AsyncImage(
                 model = channel.logo,
@@ -205,29 +219,36 @@ fun ChannelCard(
             modifier = cardModifier
                 .fillMaxWidth()
                 .aspectRatio(16f / 9f),
-        ) {
-            ChannelLogo(channel, Modifier.fillMaxSize())
+        ) { isFocused ->
+            ChannelLogo(
+                channel,
+                Modifier
+                    .fillMaxSize()
+                    // Solid while focused so the glow behind doesn't show through the glass.
+                    .then(if (isFocused) Modifier.background(Palette.SurfaceHi) else Modifier)
+                    .border(1.dp, Palette.GlassEdge, Shapes.Card),
+            )
             if (favorite) {
                 Icon(
-                    Icons.Filled.Star, contentDescription = "Favorite", tint = Palette.Gold,
+                    Icons.Filled.Favorite, contentDescription = "Favorite", tint = Color.White,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
-                        .size(18.dp),
+                        .size(16.dp),
                 )
             }
             qualityLabel(channel.bestQuality)?.let {
-                Pill(it, Modifier.align(Alignment.BottomStart).padding(8.dp))
+                Badge(it, Modifier.align(Alignment.BottomStart).padding(8.dp))
             }
         }
         Text(
             channel.name,
             color = if (focused) Palette.Text else Palette.TextDim,
-            fontSize = 15.sp,
+            fontSize = 14.sp,
             fontWeight = if (focused) FontWeight.SemiBold else FontWeight.Normal,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 12.dp, start = 2.dp, end = 2.dp),
+            modifier = Modifier.padding(top = 10.dp, start = 2.dp, end = 2.dp),
         )
     }
 }
@@ -249,8 +270,8 @@ fun ChannelGrid(
         state = state,
         modifier = modifier,
         contentPadding = PaddingValues(start = ScreenPadding, end = 48.dp, top = 8.dp, bottom = 56.dp),
-        horizontalArrangement = Arrangement.spacedBy(24.dp),
-        verticalArrangement = Arrangement.spacedBy(22.dp),
+        horizontalArrangement = Arrangement.spacedBy(22.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         header?.invoke(this)
         itemsIndexed(channels, key = { _, ch -> ch.key }) { i, ch ->
@@ -269,54 +290,69 @@ fun LazyGridScope.fullWidth(content: @Composable () -> Unit) {
     item(span = { GridItemSpan(maxLineSpan) }) { content() }
 }
 
+/** Small spaced-out caps label, used above titles and for filter rows. */
 @Composable
-fun ScreenHeader(title: String, subtitle: String? = null, badge: String? = null) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(top = 36.dp, bottom = 18.dp),
-    ) {
-        if (!badge.isNullOrEmpty()) {
-            Text(badge, fontSize = 40.sp)
-            Spacer(Modifier.size(18.dp))
-        }
-        Column {
-            Text(title, fontSize = 34.sp, fontWeight = FontWeight.Bold, color = Palette.Text)
-            if (subtitle != null) {
-                Text(subtitle, fontSize = 16.sp, color = Palette.TextDim, modifier = Modifier.padding(top = 4.dp))
+fun Eyebrow(text: String, modifier: Modifier = Modifier, color: Color = Palette.TextFaint) {
+    Text(
+        text.uppercase(),
+        fontSize = 12.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = 1.6.sp,
+        color = color,
+        maxLines = 1,
+        modifier = modifier,
+    )
+}
+
+@Composable
+fun ScreenHeader(title: String, subtitle: String? = null, eyebrow: String? = null, flag: String? = null) {
+    Column(Modifier.padding(top = 36.dp, bottom = 20.dp)) {
+        if (eyebrow != null) Eyebrow(eyebrow, Modifier.padding(bottom = 6.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (flag != null) {
+                Text(flag, fontSize = 30.sp)
+                Spacer(Modifier.width(14.dp))
             }
+            Text(title, fontSize = 32.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.5).sp, color = Palette.Text)
+        }
+        if (subtitle != null) {
+            Text(subtitle, fontSize = 15.sp, color = Palette.TextDim, modifier = Modifier.padding(top = 6.dp))
         }
     }
 }
 
+/** Tiny label on top of artwork, e.g. "FHD". */
 @Composable
-fun Pill(text: String, modifier: Modifier = Modifier, background: Color = Color.Black.copy(alpha = 0.65f), color: Color = Color.White) {
+fun Badge(text: String, modifier: Modifier = Modifier, background: Color = Color.Black.copy(alpha = 0.72f), color: Color = Color.White) {
     Text(
         text,
-        fontSize = 11.sp,
+        fontSize = 10.sp,
         fontWeight = FontWeight.Bold,
+        letterSpacing = 0.6.sp,
         color = color,
         modifier = modifier
-            .clip(RoundedCornerShape(6.dp))
+            .clip(Shapes.Badge)
             .background(background)
-            .padding(horizontal = 7.dp, vertical = 3.dp),
+            .padding(horizontal = 6.dp, vertical = 2.dp),
     )
 }
 
+/** Frosted metadata pill ("India", "1080p"). */
 @Composable
 fun MetaChip(text: String, color: Color = Palette.Text) {
     Text(
         text,
-        fontSize = 15.sp,
+        fontSize = 14.sp,
+        fontWeight = FontWeight.Medium,
         color = color,
         maxLines = 1,
         modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(Color.White.copy(alpha = 0.10f))
-            .padding(horizontal = 14.dp, vertical = 6.dp),
+            .glass(Shapes.Control, Palette.GlassHi)
+            .padding(horizontal = 14.dp, vertical = 5.dp),
     )
 }
 
-/** Pill-shaped filter chip / button that turns white when focused. */
+/** Filter chip: frosted pill, brand gradient when selected, white when focused. */
 @Composable
 fun TvChip(
     label: String,
@@ -324,19 +360,23 @@ fun TvChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    TvCard(onClick = onClick, modifier = modifier, shape = RoundedCornerShape(50), focusedScale = 1.06f, showBorder = false) { focused ->
+    TvCard(onClick = onClick, modifier = modifier, shape = Shapes.Control, focusedScale = 1.06f, showBorder = false) { focused ->
         Text(
             label,
             fontSize = 15.sp,
-            fontWeight = FontWeight.Medium,
+            fontWeight = if (selected || focused) FontWeight.SemiBold else FontWeight.Medium,
             maxLines = 1,
-            color = if (focused) Color.Black else Palette.Text,
+            color = when {
+                focused -> Palette.OnFocus
+                selected -> Color.White
+                else -> Palette.Text
+            },
             modifier = Modifier
-                .background(
+                .then(
                     when {
-                        focused -> Color.White
-                        selected -> Palette.Accent.copy(alpha = 0.55f)
-                        else -> Palette.SurfaceHi
+                        focused -> Modifier.background(Color.White)
+                        selected -> Modifier.background(Palette.AccentBrush)
+                        else -> Modifier.glass(Shapes.Control)
                     },
                 )
                 .padding(horizontal = 18.dp, vertical = 9.dp),
@@ -346,16 +386,106 @@ fun TvChip(
 
 @Composable
 fun TvButton(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    TvCard(onClick = onClick, modifier = modifier, shape = RoundedCornerShape(50), focusedScale = 1.06f, showBorder = false) { focused ->
+    TvCard(onClick = onClick, modifier = modifier, shape = Shapes.Control, focusedScale = 1.06f, showBorder = false) { focused ->
         Text(
             label,
-            fontSize = 18.sp,
+            fontSize = 17.sp,
             fontWeight = FontWeight.SemiBold,
-            color = if (focused) Color.Black else Palette.Text,
+            color = if (focused) Palette.OnFocus else Palette.Text,
             modifier = Modifier
-                .background(if (focused) Color.White else Palette.SurfaceHi)
+                .then(if (focused) Modifier.background(Color.White) else Modifier.glass(Shapes.Control, Palette.GlassHi))
                 .padding(horizontal = 28.dp, vertical = 12.dp),
         )
+    }
+}
+
+/**
+ * Browse tile used for countries, categories and languages: [leading] art, a title and a
+ * subtitle on a quiet surface that turns white when focused.
+ */
+@Composable
+fun BrowseTile(
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    highlighted: Boolean = false,
+    leading: @Composable RowScope.(focused: Boolean) -> Unit,
+) {
+    TvCard(onClick = onClick, modifier = modifier.height(88.dp), shape = Shapes.Tile, showBorder = false, focusedScale = 1.05f) { focused ->
+        val bg by animateColorAsState(if (focused) Color.White else Palette.Glass, label = "tileBg")
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxSize()
+                .background(bg)
+                .then(if (focused) Modifier else Modifier.border(1.dp, Palette.GlassEdge, Shapes.Tile))
+                .padding(horizontal = 18.dp),
+        ) {
+            leading(focused)
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    title,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (focused) Palette.OnFocus else Palette.Text,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    subtitle,
+                    fontSize = 13.sp,
+                    color = when {
+                        focused -> Palette.OnFocusDim
+                        highlighted -> Palette.Accent2
+                        else -> Palette.TextDim
+                    },
+                    maxLines = 1,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+        }
+    }
+}
+
+/** Rounded-square icon badge for [BrowseTile]: a colour gradient with a white icon, or frosted glass. */
+@Composable
+fun TileIcon(icon: ImageVector, focused: Boolean, colors: List<Color>? = null) {
+    val shape = RoundedCornerShape(14.dp)
+    Box(
+        Modifier
+            .size(48.dp)
+            .clip(shape)
+            .then(
+                when {
+                    colors != null -> Modifier.background(Brush.linearGradient(colors))
+                    focused -> Modifier.background(Palette.OnFocus.copy(alpha = 0.08f))
+                    else -> Modifier.glass(shape, Palette.GlassHi)
+                },
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = if (colors == null && focused) Palette.OnFocus else Color.White,
+            modifier = Modifier.size(24.dp),
+        )
+    }
+}
+
+/** Gradient circle with a short label, e.g. a language code. */
+@Composable
+fun GradientBadge(text: String, colors: List<Color>) {
+    Box(
+        Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .background(Brush.linearGradient(colors)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
     }
 }
 
@@ -364,7 +494,7 @@ fun AppMark(size: Dp) {
     Box(
         Modifier
             .size(size)
-            .clip(RoundedCornerShape(size * 0.3f))
+            .clip(RoundedCornerShape(size * 0.26f))
             .background(Palette.AccentBrush),
         contentAlignment = Alignment.Center,
     ) {
@@ -378,16 +508,23 @@ fun AppMark(size: Dp) {
 }
 
 @Composable
-fun EmptyState(emoji: String, title: String, message: String, modifier: Modifier = Modifier) {
+fun EmptyState(icon: ImageVector, title: String, message: String, modifier: Modifier = Modifier) {
     Column(
         modifier
             .fillMaxWidth()
             .padding(top = 80.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(emoji, fontSize = 56.sp)
-        Text(title, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 16.dp))
-        Text(message, fontSize = 16.sp, color = Palette.TextDim, modifier = Modifier.padding(top = 8.dp))
+        Box(
+            Modifier
+                .size(76.dp)
+                .glass(Shapes.Tile, Palette.GlassHi),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = Palette.TextDim, modifier = Modifier.size(32.dp))
+        }
+        Text(title, fontSize = 22.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 20.dp))
+        Text(message, fontSize = 15.sp, color = Palette.TextDim, modifier = Modifier.padding(top = 6.dp))
     }
 }
 
@@ -395,11 +532,11 @@ fun EmptyState(emoji: String, title: String, message: String, modifier: Modifier
 fun SectionTitle(text: String, modifier: Modifier = Modifier) {
     Text(
         text,
-        fontSize = 20.sp,
+        fontSize = 18.sp,
         fontWeight = FontWeight.SemiBold,
         color = Palette.Text,
         modifier = modifier
-            .height(28.dp)
+            .height(26.dp)
             .padding(start = ScreenPadding),
     )
 }

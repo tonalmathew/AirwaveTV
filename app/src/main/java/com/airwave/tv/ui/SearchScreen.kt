@@ -1,6 +1,7 @@
 package com.airwave.tv.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,7 +18,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Backspace
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -53,7 +58,7 @@ fun SearchScreen(vm: AppViewModel, lib: Library) {
                 .fillMaxHeight()
                 .padding(start = ScreenPadding),
         ) {
-            ScreenHeader("Search")
+            ScreenHeader("Search", eyebrow = "Find a channel")
             QueryBox(query)
             Spacer(Modifier.height(18.dp))
             Keyboard(
@@ -71,10 +76,10 @@ fun SearchScreen(vm: AppViewModel, lib: Library) {
                 .fillMaxHeight(),
         ) {
             when {
-                query.isBlank() -> Column(Modifier.padding(start = ScreenPadding, top = 118.dp, end = 48.dp)) {
-                    Text("Popular searches", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.height(16.dp))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                query.isBlank() -> Column(Modifier.padding(start = ScreenPadding, top = 146.dp, end = 48.dp)) {
+                    Eyebrow("Popular searches")
+                    Spacer(Modifier.height(14.dp))
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         suggestions.forEach { s -> TvChip(s, selected = false, onClick = { vm.searchQuery = s.uppercase() }) }
                     }
                     Text(
@@ -84,7 +89,7 @@ fun SearchScreen(vm: AppViewModel, lib: Library) {
                         modifier = Modifier.padding(top = 28.dp),
                     )
                 }
-                results.isEmpty() -> EmptyState("🔍", "No channels found", "Try a shorter or different name.")
+                results.isEmpty() -> EmptyState(Icons.Outlined.SearchOff, "No channels found", "Try a shorter or different name.")
                 else -> ChannelGrid(
                     vm = vm,
                     title = "Search: ${query.trim()}",
@@ -96,9 +101,9 @@ fun SearchScreen(vm: AppViewModel, lib: Library) {
                     fullWidth {
                         Text(
                             "${results.size}${if (results.size >= 300) "+" else ""} results",
-                            fontSize = 18.sp,
+                            fontSize = 15.sp,
                             color = Palette.TextDim,
-                            modifier = Modifier.padding(top = 110.dp, bottom = 4.dp),
+                            modifier = Modifier.padding(top = 140.dp, bottom = 4.dp),
                         )
                     }
                 }
@@ -114,11 +119,10 @@ private fun QueryBox(query: String) {
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(Palette.SurfaceHi)
+            .glass(Shapes.Control, Palette.GlassHi)
             .padding(horizontal = 16.dp),
     ) {
-        Icon(Icons.Filled.Search, contentDescription = null, tint = Palette.TextDim, modifier = Modifier.size(24.dp))
+        Icon(Icons.Outlined.Search, contentDescription = null, tint = Palette.TextDim, modifier = Modifier.size(24.dp))
         Spacer(Modifier.width(12.dp))
         Text(
             if (query.isEmpty()) "Channel name" else "$query|",
@@ -153,35 +157,39 @@ private fun Keyboard(
         }
         Row(horizontalArrangement = Arrangement.spacedBy(KeyGap)) {
             Key("Space", KeySize * 3 + KeyGap * 2, onSpace)
-            Key("⌫", KeySize * 2 + KeyGap, onBackspace)
-            Key("✕", KeySize, onClear)
+            Key("Delete", KeySize * 2 + KeyGap, onBackspace, icon = Icons.Outlined.Backspace)
+            Key("Clear", KeySize, onClear, icon = Icons.Outlined.Close)
         }
     }
 }
 
 @Composable
-private fun Key(label: String, width: Dp, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun Key(label: String, width: Dp, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null) {
     TvCard(
         onClick = onClick,
         modifier = modifier
             .width(width)
             .height(KeySize),
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(12.dp),
         focusedScale = 1.1f,
         showBorder = false,
     ) { focused ->
         Box(
             Modifier
                 .fillMaxSize()
-                .background(if (focused) Color.White else Palette.SurfaceHi),
+                .then(if (focused) Modifier.background(Color.White) else Modifier.glass(RoundedCornerShape(12.dp))),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                label,
-                fontSize = if (label.length > 1) 16.sp else 20.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = if (focused) Color.Black else Palette.Text,
-            )
+            if (icon != null) {
+                Icon(icon, contentDescription = label, tint = if (focused) Palette.OnFocus else Palette.Text, modifier = Modifier.size(22.dp))
+            } else {
+                Text(
+                    label,
+                    fontSize = if (label.length > 1) 15.sp else 19.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (focused) Palette.OnFocus else Palette.Text,
+                )
+            }
         }
     }
 }

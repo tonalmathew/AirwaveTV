@@ -3,6 +3,7 @@ package com.airwave.tv.ui
 import android.text.format.DateUtils
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,10 +22,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Place
+import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -49,10 +52,11 @@ fun SettingsScreen(vm: AppViewModel, lib: Library) {
             .verticalScroll(rememberScrollState())
             .padding(start = ScreenPadding, end = 48.dp, bottom = 48.dp),
     ) {
-        ScreenHeader("Settings")
-        Column(Modifier.widthIn(max = 760.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ScreenHeader("Settings", eyebrow = "Airwave TV ${BuildConfig.VERSION_NAME}")
+        Column(Modifier.widthIn(max = 760.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             SettingRow(
-                icon = Icons.Filled.Place,
+                icon = Icons.Outlined.Place,
+                colors = listOf(Color(0xFF3B82F6), Color(0xFF1E40AF)),
                 title = "Home country",
                 subtitle = "Shown first on Home and in categories",
                 value = "${home.flag}  ${home.name}",
@@ -60,15 +64,17 @@ fun SettingsScreen(vm: AppViewModel, lib: Library) {
                 modifier = Modifier.restorableFocus(vm, "settings/country", isFirst = true),
             )
             SettingRow(
-                icon = GlobeIcon,
+                icon = Icons.Outlined.Language,
+                colors = listOf(Color(0xFFA855F7), Color(0xFF6B21A8)),
                 title = "Home language",
                 subtitle = "Channels in this language are shown first",
-                value = vm.homeLanguage?.let { "🗣️  $it" } ?: "Any language",
+                value = vm.homeLanguage ?: "Any language",
                 onClick = vm::openLanguagePicker,
                 modifier = Modifier.restorableFocus(vm, "settings/language"),
             )
             SettingRow(
-                icon = Icons.Filled.Warning,
+                icon = Icons.Outlined.VisibilityOff,
+                colors = listOf(Color(0xFFF59E0B), Color(0xFFB45309)),
                 title = "Hide unreliable channels",
                 subtitle = "Skip geo-blocked and part-time streams",
                 onClick = { vm.updateHideUnreliable(!vm.hideUnreliable) },
@@ -76,7 +82,8 @@ fun SettingsScreen(vm: AppViewModel, lib: Library) {
                 trailing = { focused -> Toggle(vm.hideUnreliable, focused) },
             )
             SettingRow(
-                icon = Icons.Filled.Refresh,
+                icon = Icons.Outlined.Refresh,
+                colors = listOf(Color(0xFF14B8A6), Color(0xFF0F766E)),
                 title = "Refresh channel list",
                 subtitle = if (vm.refreshing) {
                     "Updating…"
@@ -87,8 +94,9 @@ fun SettingsScreen(vm: AppViewModel, lib: Library) {
                 modifier = Modifier.restorableFocus(vm, "settings/refresh"),
             )
             SettingRow(
-                icon = Icons.Filled.Info,
-                title = "About Airwave TV ${BuildConfig.VERSION_NAME}",
+                icon = Icons.Outlined.Info,
+                colors = listOf(Color(0xFF64748B), Color(0xFF334155)),
+                title = "About",
                 subtitle = "Channels come from the public iptv-org playlist (github.com/iptv-org/iptv). " +
                     "Airwave doesn't host any streams; availability depends on each broadcaster.",
                 onClick = {},
@@ -101,6 +109,7 @@ fun SettingsScreen(vm: AppViewModel, lib: Library) {
 @Composable
 private fun SettingRow(
     icon: ImageVector,
+    colors: List<Color>,
     title: String,
     subtitle: String,
     onClick: () -> Unit,
@@ -108,28 +117,41 @@ private fun SettingRow(
     value: String? = null,
     trailing: (@Composable (focused: Boolean) -> Unit)? = null,
 ) {
-    TvCard(onClick = onClick, modifier = modifier.fillMaxWidth(), focusedScale = 1.02f, showBorder = false) { focused ->
-        val fg = if (focused) Color.Black else Palette.Text
+    TvCard(onClick = onClick, modifier = modifier.fillMaxWidth(), shape = Shapes.Tile, focusedScale = 1.02f, showBorder = false) { focused ->
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .background(if (focused) Color.White else Palette.Surface)
-                .padding(horizontal = 24.dp, vertical = 18.dp),
+                .then(if (focused) Modifier.background(Color.White) else Modifier.glass(Shapes.Tile))
+                .padding(horizontal = 22.dp, vertical = 16.dp),
         ) {
-            Icon(icon, contentDescription = null, tint = if (focused) Palette.Accent else Palette.TextDim, modifier = Modifier.size(28.dp))
-            Spacer(Modifier.width(20.dp))
+            TileIcon(icon, focused, colors)
+            Spacer(Modifier.width(18.dp))
             Column(Modifier.weight(1f)) {
-                Text(title, fontSize = 19.sp, fontWeight = FontWeight.SemiBold, color = fg)
+                Text(title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = if (focused) Palette.OnFocus else Palette.Text)
                 Text(
                     subtitle,
-                    fontSize = 14.sp,
-                    color = if (focused) Color.Black.copy(alpha = 0.6f) else Palette.TextDim,
-                    modifier = Modifier.padding(top = 3.dp),
+                    fontSize = 13.sp,
+                    color = if (focused) Palette.OnFocusDim else Palette.TextDim,
+                    modifier = Modifier.padding(top = 2.dp),
                 )
             }
             if (value != null) {
-                Text(value, fontSize = 17.sp, fontWeight = FontWeight.Medium, color = fg, modifier = Modifier.padding(start = 16.dp))
+                Text(
+                    value,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (focused) Palette.OnFocus else Palette.TextDim,
+                    modifier = Modifier.padding(start = 16.dp),
+                )
+                Icon(
+                    Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = if (focused) Palette.OnFocus else Palette.TextFaint,
+                    modifier = Modifier
+                        .padding(start = 6.dp)
+                        .size(22.dp),
+                )
             }
             trailing?.invoke(focused)
         }
@@ -138,20 +160,26 @@ private fun SettingRow(
 
 @Composable
 private fun Toggle(on: Boolean, focused: Boolean) {
-    val offset by animateDpAsState(if (on) 22.dp else 0.dp, label = "toggle")
+    val offset by animateDpAsState(if (on) 20.dp else 0.dp, label = "toggle")
     Box(
         Modifier
             .padding(start = 16.dp)
-            .width(52.dp)
-            .height(30.dp)
+            .width(48.dp)
+            .height(28.dp)
             .clip(RoundedCornerShape(50))
-            .background(if (on) Palette.Accent else if (focused) Color.Black.copy(alpha = 0.25f) else Palette.SurfaceHi)
+            .background(
+                when {
+                    on -> Palette.Accent
+                    focused -> Palette.OnFocus.copy(alpha = 0.18f)
+                    else -> Color.White.copy(alpha = 0.14f)
+                },
+            )
             .padding(4.dp),
     ) {
         Box(
             Modifier
                 .offset(x = offset)
-                .size(22.dp)
+                .size(20.dp)
                 .clip(CircleShape)
                 .background(Color.White)
                 .align(Alignment.CenterStart),

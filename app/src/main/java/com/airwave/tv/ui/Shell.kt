@@ -3,7 +3,9 @@ package com.airwave.tv.ui
 import android.app.Activity
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,7 +22,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,6 +38,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
@@ -43,9 +49,13 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -106,7 +116,11 @@ private fun MainShell(vm: AppViewModel, lib: Library) {
         if (vm.focusTarget == target) vm.focusTarget = if (target != FIRST) FIRST else null
     }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .ambientBackground(),
+    ) {
         Box(
             Modifier
                 .fillMaxSize()
@@ -135,6 +149,14 @@ private fun MainShell(vm: AppViewModel, lib: Library) {
                 }
             }
         }
+        // Dim the page while the menu is open so the panel reads as a layer above it.
+        val scrim by animateFloatAsState(if (navFocused) 0.45f else 0f, label = "navScrim")
+        Box(
+            Modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = scrim }
+                .background(Color.Black),
+        )
         SideNav(
             selected = vm.tab,
             requesters = navRequesters,
@@ -154,34 +176,51 @@ private fun SideNav(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val width by animateDpAsState(if (expanded) NavExpandedWidth else NavCollapsedWidth, label = "navWidth")
+    val panel by animateFloatAsState(if (expanded) 1f else 0f, label = "navPanel")
     val focusManager = LocalFocusManager.current
 
     Column(
         Modifier
             .fillMaxHeight()
             .width(width)
-            .background(
-                if (expanded) {
-                    Brush.horizontalGradient(0f to Palette.Bg, 0.8f to Palette.Bg.copy(alpha = 0.97f), 1f to Palette.Bg.copy(alpha = 0.6f))
-                } else {
-                    Brush.horizontalGradient(listOf(Palette.Bg, Palette.Bg))
-                },
-            )
+            .drawBehind {
+                // Black behind the menu that fades out gradually past its edge, so there's no visible end.
+                if (panel > 0f) {
+                    val fadeWidth = size.width + 140.dp.toPx()
+                    val edge = size.width / fadeWidth
+                    val fade = 1f - edge
+                    drawRect(
+                        Brush.horizontalGradient(
+                            0f to Color.Black.copy(alpha = panel),
+                            edge * 0.92f to Color.Black.copy(alpha = panel),
+                            edge + fade * 0.25f to Color.Black.copy(alpha = 0.8f * panel),
+                            edge + fade * 0.55f to Color.Black.copy(alpha = 0.45f * panel),
+                            edge + fade * 0.8f to Color.Black.copy(alpha = 0.15f * panel),
+                            1f to Color.Transparent,
+                            endX = fadeWidth,
+                        ),
+                        size = Size(fadeWidth, size.height),
+                    )
+                }
+            }
             .onFocusChanged {
                 expanded = it.hasFocus
                 onFocusChange(it.hasFocus)
             }
             .focusProperties { enter = { requesters.getValue(selected) } }
             .focusGroup()
-            .padding(horizontal = 14.dp, vertical = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(horizontal = 16.dp, vertical = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 6.dp, bottom = 28.dp)) {
-            AppMark(44.dp)
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 6.dp, bottom = 30.dp)) {
+            AppMark(40.dp)
             if (expanded) {
                 Text(
-                    "Airwave",
-                    fontSize = 22.sp,
+                    buildAnnotatedString {
+                        append("Airwave")
+                        withStyle(SpanStyle(color = Palette.TextDim, fontWeight = FontWeight.Medium)) { append(" TV") }
+                    },
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     modifier = Modifier.padding(start = 14.dp),
@@ -195,30 +234,30 @@ private fun SideNav(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp)
+                    .height(48.dp)
                     .focusRequester(requesters.getValue(tab))
                     .onFocusChanged {
                         focused = it.isFocused
                         if (it.isFocused) onSelect(tab)
                     }
-                    .clip(RoundedCornerShape(25.dp))
+                    .clip(Shapes.Control)
                     .background(
                         when {
                             focused -> Color.White
-                            isSelected -> Color.White.copy(alpha = 0.10f)
+                            isSelected -> Palette.GlassHi
                             else -> Color.Transparent
                         },
                     )
                     .clickable(remember { MutableInteractionSource() }, indication = null) {
                         focusManager.moveFocus(FocusDirection.Right)
                     }
-                    .padding(horizontal = 15.dp),
+                    .padding(horizontal = 14.dp),
             ) {
                 Icon(
-                    tab.icon,
+                    if (isSelected) tab.selectedIcon else tab.icon,
                     contentDescription = tab.label,
                     tint = when {
-                        focused -> Color.Black
+                        focused -> Palette.OnFocus
                         isSelected -> Palette.Text
                         else -> Palette.TextDim
                     },
@@ -227,9 +266,13 @@ private fun SideNav(
                 if (expanded) {
                     Text(
                         tab.label,
-                        fontSize = 17.sp,
-                        fontWeight = if (focused || isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (focused) Color.Black else Palette.Text,
+                        fontSize = 16.sp,
+                        fontWeight = if (focused || isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                        color = when {
+                            focused -> Palette.OnFocus
+                            isSelected -> Palette.Text
+                            else -> Palette.TextDim
+                        },
                         maxLines = 1,
                         modifier = Modifier.padding(start = 16.dp),
                     )
@@ -248,14 +291,21 @@ private fun LoadError(message: String, onRetry: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("📡", fontSize = 64.sp)
-        Text("Couldn't load channels", fontSize = 30.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp))
+        Box(
+            Modifier
+                .size(72.dp)
+                .glass(Shapes.Tile, Palette.GlassHi),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Outlined.CloudOff, contentDescription = null, tint = Palette.TextDim, modifier = Modifier.size(32.dp))
+        }
+        Text("Couldn't load channels", fontSize = 28.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 20.dp))
         Text(
             "Check that your TV is connected to the internet.\n$message",
-            fontSize = 17.sp,
+            fontSize = 16.sp,
             color = Palette.TextDim,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 10.dp, bottom = 28.dp),
+            modifier = Modifier.padding(top = 8.dp, bottom = 28.dp),
         )
         TvButton("Try again", onClick = onRetry, modifier = Modifier.focusRequester(focus))
     }

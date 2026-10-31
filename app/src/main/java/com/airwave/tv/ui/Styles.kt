@@ -1,62 +1,104 @@
 package com.airwave.tv.ui
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.AutoStories
+import androidx.compose.material.icons.outlined.BusinessCenter
+import androidx.compose.material.icons.outlined.ChildCare
+import androidx.compose.material.icons.outlined.DirectionsCar
+import androidx.compose.material.icons.outlined.FamilyRestroom
+import androidx.compose.material.icons.outlined.Flight
+import androidx.compose.material.icons.outlined.Gavel
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.Landscape
+import androidx.compose.material.icons.outlined.LiveTv
+import androidx.compose.material.icons.outlined.Movie
+import androidx.compose.material.icons.outlined.MovieFilter
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.Newspaper
+import androidx.compose.material.icons.outlined.Public
+import androidx.compose.material.icons.outlined.Restaurant
+import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.Science
+import androidx.compose.material.icons.outlined.SelfImprovement
+import androidx.compose.material.icons.outlined.SentimentVerySatisfied
+import androidx.compose.material.icons.outlined.ShoppingBag
+import androidx.compose.material.icons.outlined.Spa
+import androidx.compose.material.icons.outlined.SportsSoccer
+import androidx.compose.material.icons.outlined.TheaterComedy
+import androidx.compose.material.icons.outlined.Tv
+import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import kotlin.math.abs
 
-class CategoryStyle(val emoji: String, start: Long, end: Long) {
-    val colors = listOf(Color(start), Color(end))
-}
-
-private val categoryStyles = mapOf(
-    "News" to CategoryStyle("📰", 0xFF2563EB, 0xFF1E3A8A),
-    "Sports" to CategoryStyle("⚽", 0xFF16A34A, 0xFF14532D),
-    "Movies" to CategoryStyle("🎬", 0xFFDC2626, 0xFF7F1D1D),
-    "Entertainment" to CategoryStyle("🎭", 0xFFDB2777, 0xFF831843),
-    "Music" to CategoryStyle("🎵", 0xFF9333EA, 0xFF4C1D95),
-    "Kids" to CategoryStyle("🧸", 0xFFF59E0B, 0xFF92400E),
-    "Documentary" to CategoryStyle("🌍", 0xFF0D9488, 0xFF134E4A),
-    "Series" to CategoryStyle("📺", 0xFF7C3AED, 0xFF3B0764),
-    "General" to CategoryStyle("📡", 0xFF475569, 0xFF1E293B),
-    "Religious" to CategoryStyle("🕊️", 0xFF0EA5E9, 0xFF0C4A6E),
-    "Education" to CategoryStyle("🎓", 0xFF4F46E5, 0xFF312E81),
-    "Comedy" to CategoryStyle("😂", 0xFFEAB308, 0xFF854D0E),
-    "Culture" to CategoryStyle("🏛️", 0xFFB45309, 0xFF78350F),
-    "Lifestyle" to CategoryStyle("🌿", 0xFF65A30D, 0xFF365314),
-    "Shop" to CategoryStyle("🛍️", 0xFFE11D48, 0xFF881337),
-    "Business" to CategoryStyle("💼", 0xFF0891B2, 0xFF164E63),
-    "Outdoor" to CategoryStyle("🏕️", 0xFF15803D, 0xFF052E16),
-    "Classic" to CategoryStyle("🎞️", 0xFF78716C, 0xFF292524),
-    "Travel" to CategoryStyle("✈️", 0xFF0284C7, 0xFF082F49),
-    "Cooking" to CategoryStyle("🍳", 0xFFEA580C, 0xFF7C2D12),
-    "Family" to CategoryStyle("🏠", 0xFFF97316, 0xFF7C2D12),
-    "Auto" to CategoryStyle("🚗", 0xFF64748B, 0xFF0F172A),
-    "Weather" to CategoryStyle("⛅", 0xFF38BDF8, 0xFF0C4A6E),
-    "Science" to CategoryStyle("🔬", 0xFF06B6D4, 0xFF164E63),
-    "Animation" to CategoryStyle("✨", 0xFFC026D3, 0xFF701A75),
-    "Legislative" to CategoryStyle("⚖️", 0xFF57534E, 0xFF1C1917),
-    "Public" to CategoryStyle("🏢", 0xFF3B82F6, 0xFF1E3A8A),
-    "Relax" to CategoryStyle("🧘", 0xFF14B8A6, 0xFF134E4A),
-    "Other" to CategoryStyle("📺", 0xFF374151, 0xFF111827),
+private val categoryIcons = mapOf(
+    "News" to Icons.Outlined.Newspaper,
+    "Sports" to Icons.Outlined.SportsSoccer,
+    "Movies" to Icons.Outlined.Movie,
+    "Entertainment" to Icons.Outlined.TheaterComedy,
+    "Music" to Icons.Outlined.MusicNote,
+    "Kids" to Icons.Outlined.ChildCare,
+    "Documentary" to Icons.Outlined.Public,
+    "Series" to Icons.Outlined.Tv,
+    "General" to Icons.Outlined.LiveTv,
+    "Religious" to Icons.Outlined.AutoStories,
+    "Education" to Icons.Outlined.School,
+    "Comedy" to Icons.Outlined.SentimentVerySatisfied,
+    "Culture" to Icons.Outlined.AccountBalance,
+    "Lifestyle" to Icons.Outlined.Spa,
+    "Shop" to Icons.Outlined.ShoppingBag,
+    "Business" to Icons.Outlined.BusinessCenter,
+    "Outdoor" to Icons.Outlined.Landscape,
+    "Classic" to Icons.Outlined.MovieFilter,
+    "Travel" to Icons.Outlined.Flight,
+    "Cooking" to Icons.Outlined.Restaurant,
+    "Family" to Icons.Outlined.FamilyRestroom,
+    "Auto" to Icons.Outlined.DirectionsCar,
+    "Weather" to Icons.Outlined.WbSunny,
+    "Science" to Icons.Outlined.Science,
+    "Animation" to Icons.Outlined.AutoAwesome,
+    "Legislative" to Icons.Outlined.Gavel,
+    "Public" to Icons.Outlined.Groups,
+    "Relax" to Icons.Outlined.SelfImprovement,
 )
 
-private val fallbackGradients = listOf(
-    0xFF7C5CFF to 0xFF3B1FA8,
-    0xFF2EC5FF to 0xFF0B5E8A,
-    0xFFFF6B6B to 0xFF9B1C31,
-    0xFF22C55E to 0xFF14532D,
-    0xFFF59E0B to 0xFF92400E,
-    0xFFEC4899 to 0xFF831843,
-    0xFF14B8A6 to 0xFF134E4A,
-    0xFF6366F1 to 0xFF312E81,
+fun categoryIcon(name: String): ImageVector = categoryIcons[name] ?: Icons.Outlined.LiveTv
+
+private val categoryColors = mapOf(
+    "News" to (0xFF3B82F6 to 0xFF1E40AF),
+    "Sports" to (0xFF22C55E to 0xFF15803D),
+    "Movies" to (0xFFEF4444 to 0xFF991B1B),
+    "Entertainment" to (0xFFEC4899 to 0xFF9D174D),
+    "Music" to (0xFFA855F7 to 0xFF6B21A8),
+    "Kids" to (0xFFF59E0B to 0xFFB45309),
+    "Documentary" to (0xFF14B8A6 to 0xFF0F766E),
+    "Series" to (0xFF8B5CF6 to 0xFF5B21B6),
+    "General" to (0xFF64748B to 0xFF334155),
+    "Religious" to (0xFF38BDF8 to 0xFF0369A1),
+    "Education" to (0xFF6366F1 to 0xFF3730A3),
+    "Comedy" to (0xFFEAB308 to 0xFFA16207),
+    "Culture" to (0xFFD97706 to 0xFF92400E),
+    "Lifestyle" to (0xFF84CC16 to 0xFF4D7C0F),
+    "Shop" to (0xFFF43F5E to 0xFF9F1239),
+    "Business" to (0xFF06B6D4 to 0xFF0E7490),
 )
 
-fun categoryStyle(name: String): CategoryStyle = categoryStyles[name] ?: run {
-    val (a, b) = fallbackGradients[abs(name.hashCode()) % fallbackGradients.size]
-    CategoryStyle("📺", a, b)
-}
+private val fallbackColors = listOf(
+    0xFF7C5CFF to 0xFF4C1DCC,
+    0xFF2EC5FF to 0xFF0B6E9E,
+    0xFFFF6B8B to 0xFFB0244A,
+    0xFF34D399 to 0xFF0F7A55,
+    0xFFFBBF24 to 0xFFB86E0B,
+    0xFFF472B6 to 0xFFA3245F,
+    0xFF2DD4BF to 0xFF0F766E,
+    0xFF818CF8 to 0xFF3F45C9,
+)
 
+/** Two-stop gradient for a category, or a stable one picked from [seed] (languages, initials). */
 fun gradientFor(seed: String): List<Color> {
-    val (a, b) = fallbackGradients[abs(seed.hashCode()) % fallbackGradients.size]
+    val (a, b) = categoryColors[seed] ?: fallbackColors[abs(seed.hashCode()) % fallbackColors.size]
     return listOf(Color(a), Color(b))
 }
 

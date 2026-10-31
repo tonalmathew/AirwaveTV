@@ -1,8 +1,22 @@
 package com.airwave.tv.ui
 
+import android.os.Build
 import android.text.format.DateFormat
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.blur
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import com.airwave.tv.data.OTHER_CATEGORY
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.runtime.rememberCoroutineScope
@@ -26,7 +40,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -68,14 +81,14 @@ private fun buildRows(
     }
     lib.byCountry[home]?.let {
         val c = lib.country(home)
-        rows += HomeRow("country", "${c.flag}  Channels in ${c.name}", Library.localFirst(Library.rank(it), home, language).take(40))
+        rows += HomeRow("country", "Popular in ${c.name}", Library.localFirst(Library.rank(it), home, language).take(40))
     }
     language?.let { lib.byLanguage[it] }?.let {
-        rows += HomeRow("language", "🗣️  In $language", Library.localFirst(Library.rank(it), home, language).take(40))
+        rows += HomeRow("language", "In $language", Library.localFirst(Library.rank(it), home, language).take(40))
     }
     for (cat in homeCategories) {
         val list = lib.byCategory[cat] ?: continue
-        rows += HomeRow("cat-$cat", "${categoryStyle(cat).emoji}  $cat", Library.localFirst(Library.rank(list), home, language).take(30))
+        rows += HomeRow("cat-$cat", cat, Library.localFirst(Library.rank(list), home, language).take(30))
     }
     return rows
 }
@@ -88,6 +101,10 @@ fun HomeScreen(vm: AppViewModel, lib: Library) {
     }
     var hero by remember { mutableStateOf<Channel?>(null) }
 
+    // The focused channel's colours wash over the top of the screen, behind everything.
+    Crossfade(targetState = hero, animationSpec = tween(600), label = "backdrop") { channel ->
+        if (channel != null) HeroBackdrop(channel)
+    }
     Column(Modifier.fillMaxSize()) {
         Box(
             Modifier
@@ -145,10 +162,17 @@ private fun Hero(channel: Channel?, lib: Library, favorite: Boolean) {
         .padding(start = ScreenPadding, end = 150.dp, top = 28.dp, bottom = 16.dp)
     if (channel == null) {
         Column(modifier, verticalArrangement = Arrangement.Center) {
-            Text("Welcome to Airwave", fontSize = 40.sp, fontWeight = FontWeight.Bold)
+            Eyebrow("Airwave TV")
             Text(
-                "%,d free live channels from %d countries".format(lib.all.size, lib.countryList.size),
-                fontSize = 18.sp,
+                "Free live TV from around the world",
+                fontSize = 36.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = (-0.5).sp,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+            Text(
+                "%,d channels  ·  %d countries".format(lib.all.size, lib.countryList.size),
+                fontSize = 16.sp,
                 color = Palette.TextDim,
                 modifier = Modifier.padding(top = 8.dp),
             )
@@ -158,6 +182,32 @@ private fun Hero(channel: Channel?, lib: Library, favorite: Boolean) {
     }
 }
 
+/**
+ * Large blurred colour wash from the channel's logo, fading out down the screen so the rows sit
+ * on the ambient background (blur needs Android 12+).
+ */
+@Composable
+private fun HeroBackdrop(channel: Channel) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || channel.logo == null) return
+    AsyncImage(
+        model = channel.logo,
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(520.dp)
+            .graphicsLayer {
+                alpha = 0.35f
+                compositingStrategy = CompositingStrategy.Offscreen
+            }
+            .drawWithContent {
+                drawContent()
+                drawRect(Brush.verticalGradient(listOf(Color.Black, Color.Transparent)), blendMode = BlendMode.DstIn)
+            }
+            .blur(110.dp),
+    )
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HeroChannel(channel: Channel, lib: Library, favorite: Boolean, modifier: Modifier) {
@@ -165,46 +215,63 @@ private fun HeroChannel(channel: Channel, lib: Library, favorite: Boolean, modif
         ChannelLogo(
             channel,
             modifier = Modifier
-                .width(272.dp)
+                .width(256.dp)
                 .aspectRatio(16f / 9f)
-                .clip(RoundedCornerShape(18.dp)),
+                .clip(Shapes.Tile)
+                .border(1.dp, Palette.GlassEdge, Shapes.Tile),
             padding = 22.dp,
-            initialsSize = 44.sp,
+            initialsSize = 40.sp,
         )
         Spacer(Modifier.width(32.dp))
         Column(Modifier.weight(1f)) {
+            Eyebrow(channel.categories.firstOrNull()?.takeIf { it != OTHER_CATEGORY } ?: "Live channel")
             Text(
                 channel.name,
                 fontSize = 38.sp,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = (-0.5).sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 6.dp),
             )
+            val details = listOfNotNull(
+                channel.country?.let { lib.country(it).let { c -> "${c.flag}  ${c.name}" } },
+                channel.languages.take(2).joinToString(", ").ifEmpty { null },
+            ).joinToString("   ·   ")
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(top = 12.dp),
+                modifier = Modifier.padding(top = 10.dp),
             ) {
-                channel.country?.let {
-                    val c = lib.country(it)
-                    MetaChip("${c.flag}  ${c.name}")
+                if (details.isNotEmpty()) {
+                    Text(details, fontSize = 16.sp, color = Palette.TextDim, modifier = Modifier.padding(end = 6.dp))
                 }
-                if (channel.languages.isNotEmpty()) MetaChip("🗣️  ${channel.languages.take(2).joinToString(" · ")}")
-                channel.categories.take(2).forEach { MetaChip(it) }
                 channel.bestQuality?.let { MetaChip("${it}p") }
                 if (channel.geoBlocked) MetaChip("Geo-blocked", Palette.Gold)
-                if (favorite) MetaChip("★ Favorite", Palette.Gold)
+                if (favorite) MetaChip("Favorite")
             }
-            Text(
-                "OK  Watch     Hold OK  ${if (favorite) "Remove from" else "Add to"} favorites",
-                fontSize = 15.sp,
-                color = Palette.TextDim,
-                modifier = Modifier.padding(top = 14.dp),
-            )
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 16.dp)) {
+                KeyHint("OK", "Watch")
+                Spacer(Modifier.width(22.dp))
+                KeyHint("Hold OK", if (favorite) "Remove from favorites" else "Add to favorites")
+            }
         }
     }
 }
 
+@Composable
+private fun KeyHint(key: String, action: String) {
+    Text(
+        key,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Bold,
+        color = Palette.Text,
+        modifier = Modifier
+            .border(1.dp, Color.White.copy(alpha = 0.3f), Shapes.Badge)
+            .padding(horizontal = 6.dp, vertical = 2.dp),
+    )
+    Text(action, fontSize = 14.sp, color = Palette.TextDim, modifier = Modifier.padding(start = 8.dp))
+}
 @Composable
 private fun Clock(modifier: Modifier = Modifier) {
     val context = LocalContext.current
@@ -216,5 +283,5 @@ private fun Clock(modifier: Modifier = Modifier) {
             delay(10_000)
         }
     }
-    Text(format.format(Date(now)), fontSize = 22.sp, fontWeight = FontWeight.Medium, color = Palette.TextDim, modifier = modifier)
+    Text(format.format(Date(now)), fontSize = 20.sp, fontWeight = FontWeight.Medium, color = Palette.TextDim, modifier = modifier)
 }
